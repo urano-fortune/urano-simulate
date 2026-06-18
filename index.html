@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>占い師育成シミュレーター</title>
+    <style>
+        /* LINE風の基本デザイン */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #7494c0; /* LINEのあの水色 */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        /* ヘッダー */
+        .header {
+            background-color: #2b3647;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        /* ステータスバー（満足度） */
+        .status-bar {
+            background-color: #1e2631;
+            color: #fff;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+        /* チャットエリア */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        /* 吹き出しの共通設定 */
+        .message {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        /* お客様（左側） */
+        .client {
+            background-color: white;
+            align-self: flex-start;
+            border-top-left-radius: 2px;
+            color: #000;
+        }
+        /* 占い師（右側） */
+        .fortune-teller {
+            background-color: #85e249; /* LINEの緑 */
+            align-self: flex-end;
+            border-top-right-radius: 2px;
+            color: #000;
+        }
+        /* 選択肢エリア */
+        .options-container {
+            background-color: #f0f0f0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .option-btn {
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .option-btn:hover {
+            background-color: #e9e9e9;
+        }
+        /* 結果画面のポップアップ */
+        .result-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            z-index: 10;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="header">相談者：カナ（28歳・OL）</div>
+    <div class="status-bar">
+        <span>お客様の満足度: <span id="satisfaction-val">50</span> / 100</span>
+    </div>
+
+    <!-- チャット画面 -->
+    <div class="chat-container" id="chat-box">
+        <!-- ここに会話が追加されていきます -->
+    </div>
+
+    <!-- 選択肢ボタンエリア -->
+    <div class="options-container" id="options-box">
+        <!-- ここに選択肢が追加されます -->
+    </div>
+
+    <!-- 結果画面（最初は隠しておく） -->
+    <div class="result-screen hidden" id="result-box">
+        <h2>鑑定終了</h2>
+        <p id="result-score" style="font-size: 1.5rem; margin: 20px 0; font-weight: bold;"></p>
+        <p id="result-comment" style="margin-bottom: 30px;"></p>
+        <button onclick="location.reload()" style="padding: 10px 20px; font-size: 1rem; border-radius: 5px; cursor: pointer;">もう一度挑戦する</button>
+    </div>
+
+    <script>
+        // シナリオデータ（ここで会話の流れと点数を管理！）
+        const scenario = {
+            start: {
+                text: "夜遅くにすみません…。2年付き合ってる彼がいるんですけど、最近LINEの既読無視が多くて。これって、もう私に冷めちゃったんでしょうか？泣きそうです…。",
+                options: [
+                    { text: "A: 「既読無視は辛いですね。彼の本音と、2人の未来をタロットで詳しく視てみましょう」", score: 20, next: "route_good" },
+                    { text: "B: 「男なんてそんなものですよ。既読無視くらいで泣いてたらこの先持ちませんよ！」", score: -30, next: "route_bad" }
+                ]
+            },
+            route_good: {
+                text: "ありがとうございます…そう言ってもらえるだけで少し救われます。結果はどうでしたか…？悪い結果でも受け止めます。",
+                options: [
+                    { text: "A: 「彼の中に迷いが見えますが、嫌いになった訳ではなさそうです。連絡を控えて3日待ってみて」", score: 30, next: "end" },
+                    { text: "B: 「完全に浮気してますね。新しい男を探した方があなたの幸せのためです」", score: -20, next: "end" }
+                ]
+            },
+            route_bad: {
+                text: "そんな言い方しなくてもいいじゃないですか！もういいです、他の方に視てもらいます！",
+                options: [
+                    { text: "（会話が終了しました）", score: 0, next: "end" }
+                ]
+            }
+        };
+
+        let currentScore = 50;
+        const chatBox = document.getElementById('chat-box');
+        const optionsBox = document.getElementById('options-box');
+
+        // メッセージを画面に追加する関数
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+            msgDiv.innerText = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // 最下部へスクロール
+        }
+
+        // 次のシナリオに進む関数
+        function progressGame(nodeKey) {
+            // 終了チェック
+            if (nodeKey === 'end' || currentScore <= 0) {
+                showResult();
+                return;
+            }
+
+            const node = scenario[nodeKey];
+            optionsBox.innerHTML = ''; // 選択肢をクリア
+
+            // お客様のメッセージを表示
+            setTimeout(() => {
+                addMessage(node.text, 'client');
+                
+                // 選択肢を表示
+                node.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.classList.add('option-btn');
+                    btn.innerText = opt.text;
+                    btn.onclick = () => {
+                        // 占い師（自分）のメッセージを表示
+                        addMessage(opt.text.substring(3), 'fortune-teller'); // 「A: 」を削って表示
+                        
+                        // スコア更新
+                        currentScore = Math.max(0, Math.min(100, currentScore + opt.score));
+                        document.getElementById('satisfaction-val').innerText = currentScore;
+                        
+                        // 次の会話へ
+                        setTimeout(() => progressGame(opt.next), 1000);
+                    };
+                    optionsBox.appendChild(btn);
+                });
+            }, 800);
+        }
+
+        // 結果画面の表示
+        function showResult() {
+            document.getElementById('result-box').classList.remove('hidden');
+            const scoreText = `最終お客様満足度: ${currentScore}点`;
+            document.getElementById('result-score').innerText = scoreText;
+
+            let comment = "";
+            if (currentScore >= 80) {
+                comment = "素晴らしい！傾聴力、提案力ともにプロフェッショナルです。リピーター続出の間違いなし！";
+            } else if (currentScore >= 40) {
+                comment = "平均的な鑑定です。悪くはないですが、もう少し相談者の不安に寄り添う言葉選びを意識してみましょう。";
+            } else {
+                comment = "鑑定強制終了です。正論をぶつけるだけでなく、まずは傷ついたお客様の心を「受け止める」練習をしましょう。";
+            }
+            document.getElementById('result-comment').innerText = comment;
+        }
+
+        // ゲーム開始
+        progressGame('start');
+    </script>
+</body>
+</html>
