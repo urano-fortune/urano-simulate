@@ -65,17 +65,33 @@
         
         /* 選択肢ボタン */
         .option-btn {
-            background-color: #ffffff; border: 1px solid #0084ff; color: #0084ff;
+            background-color: #ffffff; border: 1px solid #d1d5db; color: #4b5563;
             padding: 12px 15px; border-radius: 6px; font-size: 0.95rem; text-align: left;
-            cursor: pointer; font-weight: bold; transition: all 0.2s;
+            cursor: pointer; font-weight: normal; transition: all 0.2s ease; position: relative;
+            outline: none; -webkit-tap-highlight-color: transparent;
         }
-        .option-btn:hover { background-color: #f0f7ff; }
         .btn-prefix { color: #111111; font-weight: 800; margin-right: 4px; }
+        
+        /* 👑 1タップ目で選択・強調表示された状態のスタイル */
+        .option-btn.selected {
+            border: 2px solid #0084ff !important; background-color: #f0f7ff !important; color: #0066cc !important; font-weight: bold !important;
+            box-shadow: 0 0 10px rgba(0, 132, 255, 0.4); padding-bottom: 22px; /* 下部に少し隙間を作る */
+        }
+        /* 選択時にボタンの右下にふんわり出る案内文 */
+        .option-btn.confirm-hint::after {
+            content: "確定するにはもう一度タップしてください ➔"; position: absolute; right: 12px; bottom: 4px;
+            font-size: 0.75rem; color: #ff6b6b; font-weight: bold; animation: fadeIn 0.3s ease;
+        }
+        
+        /* 他のボタンが選ばれている間、選ばれていないボタンを薄くする */
+        .options-container.has-selection .option-btn:not(.selected) {
+            opacity: 0.4; transform: scale(0.97);
+        }
         
         /* システムメッセージ */
         .system-msg { align-self: center; background: #e2e8f0; color: #4a5568; font-size: 0.8rem; padding: 4px 10px; border-radius: 10px; animation: fadeIn 0.5s ease-out; }
         
-        /* 結果画面（完全に不透明な黒） */
+        /* 結果画面 */
         @keyframes popupFadeIn {
             from { opacity: 0; background-color: rgba(17, 17, 17, 0); }
             to { opacity: 1; background-color: rgba(17, 17, 17, 1); }
@@ -90,46 +106,61 @@
         /* トレーニング案内ポップアップ */
         .guide-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-color: rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 90; animation: fadeIn 0.5s ease-out forwards;
         }
         .guide-content {
-            width: 85%; max-width: 400px; background: white; color: #333333;
-            padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            width: 85%; max-width: 400px; background: white; color: #333333; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
-
-        .result-content {
-            width: 85%; max-width: 450px; text-align: center; padding: 20px 0;
-            box-sizing: border-box;
-        }
-        
-        /* 👑 修正点2：解説テキストの文字色を完全な白「#ffffff」に強制指定 */
         .comment-box {
             margin-bottom: 30px; line-height: 1.6; text-align: left; font-size: 0.95rem; 
             background: rgba(255,255,255,0.15); color: #ffffff !important; padding: 15px; border-radius: 8px; white-space: pre-wrap;
         }
+
+        /* スタート画面 */
+        .start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #2c353f; color: white; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200; box-sizing: border-box;
+        }
+        .start-content { width: 85%; max-width: 400px; text-align: center; }
+        .genre-btn {
+            background-color: #ffffff; color: #2c353f; border: none; padding: 15px;
+            margin: 12px 0; border-radius: 8px; font-weight: bold; font-size: 1.05rem;
+            width: 100%; cursor: pointer; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .genre-btn:active { transform: scale(0.98); }
+
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div class="header">お悩み相談（不倫・バレるか不安）</div>
+    <div class="start-screen" id="start-screen">
+        <div class="start-content">
+            <h2 style="margin-bottom: 5px;">占い師実戦トレーニング</h2>
+            <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 30px;">対応する相談者のペルソナを選択してください</p>
+            
+            <button class="genre-btn" onclick="selectGenre('不倫')">💔 不倫相談（彼との今後）</button>
+            <button class="genre-btn" onclick="selectGenre('復縁')">🔄 復縁相談（元カレとの復縁）</button>
+            <button class="genre-btn" onclick="selectGenre('片思い')">💘 片思い相談（知人の彼）</button>
+        </div>
+    </div>
+
+    <div class="header" id="app-header">お悩み相談</div>
     <div class="status-bar">
         <span>【実践トレーニング】</span>
         <span id="block-info">ブロック1</span>
     </div>
 
-    <div class="chat-container" id="chat-box">
-        <!-- 冒頭の流れを自動展開 -->
-    </div>
+    <div class="chat-container" id="chat-box"></div>
 
-    <div class="options-container">
+    <div class="options-container" id="options-box-container">
         <div class="option-label" id="current-label">先生からの送信（選択肢を選んでください）</div>
         <div id="options-box"></div>
     </div>
 
-    <!-- 👑 修正点1：改行バグを除去し、指定の文章に修正 -->
     <div class="guide-screen hidden" id="guide-box">
         <div class="guide-content">
             <div style="font-size: 2.5rem; margin-bottom: 10px;">💡</div>
@@ -141,7 +172,6 @@
         </div>
     </div>
 
-    <!-- 結果画面（真っ黒背景 ＋ 白文字化） -->
     <div class="result-screen hidden" id="result-box">
         <div class="result-content">
             <h2 style="font-size: 1.5rem; margin-top: 0; color: #ffffff;">鑑定シミュレート終了</h2>
@@ -154,6 +184,9 @@
     <script>
         const chatBox = document.getElementById('chat-box');
         const optionsBox = document.getElementById('options-box');
+        const optionsContainer = document.getElementById('options-box-container');
+
+        let selectedGenre = "";
 
         function getTimeStr() {
             const now = new Date();
@@ -193,29 +226,52 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function initGame() {
-            addMessage("お客様のお悩み内容：不倫相手の年下彼氏との今後について占ってほしいです。この先相手との関係は旦那にバレることはあるでしょうか。", "client");
+        function selectGenre(genre) {
+            selectedGenre = genre;
+            document.getElementById('start-screen').classList.add('hidden');
             
-            setTimeout(() => {
-                addMessage("【無料】よろしくお願いします。", "client", true);
-            }, 1200);
+            if (genre === '不倫') {
+                document.getElementById('app-header').innerText = "相談者：カナ（不倫相談）";
+                initGameInrin();
+            } else if (genre === '復縁') {
+                document.getElementById('app-header').innerText = "相談者：マユ（復縁相談）";
+                initGameFukuen();
+            } else if (genre === '片思い') {
+                document.getElementById('app-header').innerText = "相談者：ユイ（片思い相談）";
+                initGameKataomoi();
+            }
+        }
 
-            setTimeout(() => {
-                addMessage("ご依頼いただきましてありがとうございます😊ご依頼いただいた、年下彼氏との今後について鑑定を行わせていただきますね。鑑定完了まで10分ほどお待ちくださいませ。", "teller");
-            }, 2600);
-
-            setTimeout(() => {
-                addSystemMessage("―― 10分後 ――");
-                addMessage("鑑定が終わりました😊年下のお相手様との今後について占わせていただきましたが、〇〇様もご安心いただける内容かと思われますよ。是非ご覧くださいね。", "teller");
-            }, 4500);
-
+        // --- ① 不倫相談ルート ---
+        function initGameInrin() {
+            addMessage("お客様のお悩み内容：不倫相手の年下彼氏との今後について占ってほしいです。この先相手との関係は旦那にバレることはあるでしょうか。", "client");
+            setTimeout(() => { addMessage("【無料】よろしくお願いします。", "client", true); }, 1200);
+            setTimeout(() => { addMessage("ご依頼いただきましてありがとうございます😊ご依頼いただいた、年下彼氏との今後について鑑定を行わせていただきますね。鑑定完了まで10分ほどお待ちくださいませ。", "teller"); }, 2600);
+            setTimeout(() => { addSystemMessage("―― 10分後 ――"); addMessage("鑑定が終わりました😊年下のお相手様との今後について占わせていただきましたが、〇〇様もご安心いただける内容かと思われますよ。是非ご覧くださいね。", "teller"); }, 4500);
             setTimeout(() => {
                 addMessage("彼との絆は深く、お互い慎重に行動できているため、当面旦那様にバレる心配はなさそうです。今後も秘密を守り、2人だけの特別な時間を純粋に楽しむことで、安定した関係を長く築いていけそうですよ。ご安心くださいね。", "teller", false, true);
-                
-                setTimeout(() => {
-                    showGuidePopup(() => showBlock1Options());
-                }, 1500);
+                setTimeout(() => { showGuidePopup(() => showBlock1Options()); }, 1500);
             }, 6500);
+        }
+
+        // --- ② 復縁相談ルート ---
+        function initGameFukuen() {
+            addMessage("お客様のお悩み内容：半年前にお別れした元カレと復縁したいです。彼は今、私のことをどう思っていますか？連絡したら返信は来ますか？", "client");
+            setTimeout(() => { addMessage("【無料】よろしくお願いします。", "client", true); }, 1200);
+            setTimeout(() => { 
+                addSystemMessage("※復縁相談のシナリオは現在準備中です。Excelの設計図ができ次第、ここに分岐を埋め込めます！"); 
+                setTimeout(() => showFinalResult(100, "復縁相談モードの読み込みテスト成功です！\nここに続きのストーリーを追加していきましょう。"), 2000);
+            }, 2600);
+        }
+
+        // --- ③ 片思い相談ルート ---
+        function initGameKataomoi() {
+            addMessage("お客様のお悩み内容：職場の先輩に片思いしています。たまに目が合うのですが、脈はありますか？どうアプローチすれば付き合えますか？", "client");
+            setTimeout(() => { addMessage("【無料】よろしくお願いします。", "client", true); }, 1200);
+            setTimeout(() => { 
+                addSystemMessage("※片思い相談のシナリオは現在準備中です。Excelの設計図ができ次第、ここに分岐を埋め込めます！"); 
+                setTimeout(() => showFinalResult(100, "片思い相談モードの読み込みテスト成功です！\nここに続きのストーリーを追加していきましょう。"), 2000);
+            }, 2600);
         }
 
         function showGuidePopup(onCloseAction) {
@@ -228,139 +284,92 @@
             };
         }
 
-        function createOptionButton(prefix, text, onClickAction) {
+        // 👑 2タップ判定ロジックの修正（確実に留まる処理）
+        function createOptionButton(prefix, text, onConfirmAction) {
             const btn = document.createElement('button');
             btn.classList.add('option-btn');
             btn.innerHTML = `<span class="btn-prefix">${prefix}</span>${text}`;
-            btn.onclick = onClickAction;
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // 2タップ目：すでに選ばれている場合は「送信」
+                if (btn.classList.contains('selected')) {
+                    optionsBox.innerHTML = '';
+                    optionsContainer.classList.remove('has-selection');
+                    addMessage(text, "teller");
+                    onConfirmAction();
+                } else {
+                    // 1タップ目：すべてのボタンから「selected」と「案内文」をはぎ取る
+                    const allBtns = optionsBox.querySelectorAll('.option-btn');
+                    allBtns.forEach(b => {
+                        b.classList.remove('selected');
+                        b.classList.remove('confirm-hint');
+                    });
+                    
+                    // 自分だけを選択状態にして案内文を出す
+                    btn.classList.add('selected');
+                    btn.classList.add('confirm-hint');
+                    optionsContainer.classList.add('has-selection');
+                }
+            });
             return btn;
         }
 
+        // 不倫用の分岐処理群
         function showBlock1Options() {
-            optionsBox.innerHTML = '';
+            optionsBox.innerHTML = ''; optionsContainer.classList.remove('has-selection');
             document.getElementById('block-info').innerText = "ブロック1";
-
-            const optA = createOptionButton("選択肢A：", "以上が鑑定結果となります。ただ、今後の関係の安定のためには注意が必要な部分もありそうで、それも今の鑑定から少し見えてきました。このままお伝えさせていただいてもよろしいですか？", () => {
-                optionsBox.innerHTML = '';
-                addMessage("以上が鑑定結果となります。ただ、今後の関係の安定のためには注意が必要な部分もありそうで、それも今の鑑定から少し見えてきました。このままお伝えさせていただいてもよろしいですか？", "teller");
-                setTimeout(goToBranchA, 1500);
-            });
-
-            const optB = createOptionButton("選択肢B：", "以上が鑑定結果となります。お相手との今後についてお伝えしておりますので、是非ご覧くださいね。他にもお困りのことがあればいつでもご相談お待ちしております✨", () => {
-                optionsBox.innerHTML = '';
-                addMessage("以上が鑑定結果となります。お相手との今後についてお伝えしておりますので、是非ご覧くださいね。他にもお困りのことがあればいつでもご相談お待ちしております✨", "teller");
-                setTimeout(() => showFinalResult(40, "【満足度40%：ラリー終了ルート】\n鑑定結果を送った後、無難な締めくくりをしてしまったため、お客様は満足してそのまま離脱しました。追加の質問を引き出すフックがなかったため、ラリー展開としてはここで終了です。"), 2200);
-            });
-
-            const optC = createOptionButton("選択肢C：", "以上が鑑定結果となります。お相手との今後についてお伝えさせていただきましたが、〇〇様は旦那様にバレないかどうか…と心配になる出来事が直近であったのでしょうか？", () => {
-                optionsBox.innerHTML = '';
-                addMessage("以上が鑑定結果となります。お相手との今後についてお伝えさせていただきましたが、〇〇様は旦那様にバレないかどうか…と心配になる出来事が直近であったのでしょうか？", "teller");
-                setTimeout(goToBranchB, 1500);
-            });
-
-            optionsBox.appendChild(optA);
-            optionsBox.appendChild(optB);
-            optionsBox.appendChild(optC);
+            
+            const optA = createOptionButton("選択肢A：", "以上が鑑定結果となります。ただ、今後の関係の安定のためには注意が必要な部分もありそうで、それも今の鑑定から少し見えてきました。このままお伝えさせていただいてもよろしいですか？", () => { setTimeout(goToBranchA, 1500); });
+            const optB = createOptionButton("選択肢B：", "以上が鑑定結果となります。お相手との今後についてお伝えしておりますので、是非ご覧くださいね。他にもお困りのことがあればいつでもご相談お待ちしております✨", () => { setTimeout(() => showFinalResult(40, "【満足度40%：ラリー終了ルート】\n鑑定結果を送った後、無難な締めくくりをしてしまったため、お客様は満足してそのまま離脱しました。"), 2200); });
+            const optC = createOptionButton("選択肢C：", "以上が鑑定結果となります。お相手との今後についてお伝えさせていただきましたが、〇〇様は旦那様にバレないかどうか…と心配になる出来事が直近であったのでしょうか？", () => { setTimeout(goToBranchB, 1500); });
+            
+            optionsBox.appendChild(optA); optionsBox.appendChild(optB); optionsBox.appendChild(optC);
         }
 
         function goToBranchA() {
-            document.getElementById('block-info').innerText = "分岐A";
-            addMessage("お願いします", "client");
-
-            setTimeout(() => {
-                addMessage("それではこのまま今後の注意点についてもお伝えをさせていただきますね。再度詳細まで鑑定させていただきますので、10分ほどお待ちくださいませ。", "teller");
-            }, 1500);
-
+            document.getElementById('block-info').innerText = "分岐A"; addMessage("お願いします", "client");
+            setTimeout(() => { addMessage("それではこのまま今後の注意点についてもお伝えをさせていただきますね。再度詳細まで鑑定させていただきますので、10分ほどお待ちくださいませ。", "teller"); }, 1500);
             setTimeout(() => {
                 addSystemMessage("―― 10分後 ――");
                 addMessage("実はカードから、少し『気の緩み』への警告が出ています。関係が安定しているからこそ、スマホの通知や会う頻度でつい油断が生じやすいようです。\n\n具体的には、『LINEのポップアップ表示をオフにする』『デートの曜日は固定せずバラバラにする』といった、徹底した日常の対策が今後の明暗を分けます。\n\n「絶対に大丈夫」と思わず、初心の慎重さを忘れないことが、彼との楽しい時間を守る最大の魔除けになりますよ。", "teller", false, true);
-                
-                setTimeout(() => {
-                    showGuidePopup(() => showBranchAOptions());
-                }, 1500);
+                setTimeout(() => { showGuidePopup(() => showBranchAOptions()); }, 1500);
             }, 3500);
         }
 
         function showBranchAOptions() {
-            optionsBox.innerHTML = '';
+            optionsBox.innerHTML = ''; optionsContainer.classList.remove('has-selection');
             
-            const optA = createOptionButton("選択肢A：", "以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。ちなみに他にお相手様が求められていることについても占うことが出来ますよ。もしそれも知りたければ是非ご依頼お待ちしておりますね。", () => {
-                optionsBox.innerHTML = '';
-                addMessage("以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。ちなみに他にお相手様が求められていることについても占うことが出来ますよ。もしそれも知りたければ是非ご依頼お待ちしておりますね。", "teller");
-                setTimeout(() => showFinalResult(60, "【満足度60%：メニュー提案・並ルート】\n次の占いの提案（相手が求めていること）を行いましたが、お客様の現在の最大の関心事（バレる不安）から少しズレた提案だったため、再依頼には繋がりませんでした。悪くはないですが、もう一歩寄り添いが必要です。"), 2200);
-            });
-
-            const optB = createOptionButton("選択肢B：", "以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。鑑定結果を見て気になったことがあれば何でも聞いてください。", () => {
-                optionsBox.innerHTML = '';
-                addMessage("以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。鑑定結果を見て気になったことがあれば何でも聞いてください。", "teller");
-                setTimeout(() => showFinalResult(30, "【満足度30%：聞きっぱなしルート】\n「何でも聞いてください」とお客様にボールを丸投げしてしまったため、ポイントを気にするお客様はここで離脱してしまいました。具体的に答えやすい質問でリードすることがラリーの秘訣です。"), 2200);
-            });
-
-            const optC = createOptionButton("選択肢C：", "以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。ちなみにお相手様とはどこでお知り合いになられたのですか？場所や状況によっても、今〇〇様がバレないように意識しておくべき点などお伝えさせていただけるかもしれません。", () => {
-                optionsBox.innerHTML = '';
-                addMessage("以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。ちなみにお相手様とはどこでお知り合いになられたのですか？場所や状況によっても、今〇〇様がバレないように意識しておくべき点などお伝えさせていただけるかもしれません。", "teller");
-                setTimeout(() => showFinalResult(100, "【満足度100%：大成功！深掘りリピート獲得】\n素晴らしいです！「どこで知り合ったか」という具体的な質問を投げつつ、それが「バレないための対策（お客様の最大の関心）」に繋がると提示できています。お客様は無料定型文や短文で喜んで次を教えてくれるでしょう。次回の有料鑑定への誘導率が最も高い満点トークです。"), 2200);
-            });
-
-            optionsBox.appendChild(optA);
-            optionsBox.appendChild(optB);
-            optionsBox.appendChild(optC);
+            const optA = createOptionButton("選択肢A：", "以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。ちなみに他にお相手様が求められていることについても占うことが出来ますよ。もしそれも知りたければ是非ご依頼お待ちしておりますね。", () => { setTimeout(() => showFinalResult(60, "【満足度60%：メニュー提案・並ルート】\n次の占いの提案を行いましたが、最大の関心事からズレたため再依頼には繋がりませんでした。"), 2200); });
+            const optB = createOptionButton("選択肢B：", "以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。鑑定結果を見て気になったことがあれば何でも聞いてください。", () => { setTimeout(() => showFinalResult(30, "【満足度30%：聞きっぱなしルート】\nお客様にボールを丸投げしてしまったため、離脱されてしまいました。"), 2200); });
+            const optC = createOptionButton("選択肢C：", "以上が鑑定結果となります。注意した方が良い内容についてお伝えさせていただきましたので、是非ご覧くださいね。ちなみにお相手様とはどこでお知り合いになられたのですか？場所や状況によっても、今〇〇様がバレないように意識しておくべき点などお伝えさせていただけるかもしれません。", () => { setTimeout(() => showFinalResult(100, "【満足度100%：大成功！深掘りリピート獲得】\n素晴らしいです！具体的な質問を投げつつ最大の関心に繋げています。"), 2200); });
+            
+            optionsBox.appendChild(optA); optionsBox.appendChild(optB); optionsBox.appendChild(optC);
         }
 
         function goToBranchB() {
-            document.getElementById('block-info').innerText = "分岐B";
-            addMessage("特にはないですが心配になって", "client");
-
-            setTimeout(() => {
-                addMessage("不倫をされているという状況ですと、ご不安が募るタイミングもありますよね…。今の状況からはすぐにバレるという可能性は低そうですので、ご安心くださいね。ですが、今後の行動にはやはり意識を配っておくことも重要ですね。彼とは毎日LINEなどでご連絡を取られていますか？", "teller");
-            }, 1800);
-
-            setTimeout(() => {
-                addMessage("【無料】はい。", "client", true);
-            }, 3500);
-
-            setTimeout(() => {
-                addMessage("ご連絡は毎日取られているのですね。それですとふとしたタイミングでの通知などには注意が必要かもしれません。一度、今後のお相手様との関係でバレるキッカケになってしまう可能性がある部分や、意識しておいた方が良い危険な部分についても鑑定してみるのはいかがでしょうか？今後の行動の参考になるはずです。", "teller");
-            }, 5300);
-
-            setTimeout(() => {
-                addMessage("お願いします。", "client");
-            }, 7000);
-
+            document.getElementById('block-info').innerText = "分岐B"; addMessage("特にはないですが心配になって", "client");
+            setTimeout(() => { addMessage("不倫をされているという状況ですと、ご不安が募るタイミングもありますよね…。今の状況からはすぐにバレるという可能性は低そうですので、ご安心くださいね。ですが、今後の行動にはやはり意識を配っておくことも重要ですね。彼とは毎日LINEなどでご連絡を取られていますか？", "teller"); }, 1800);
+            setTimeout(() => { addMessage("【無料】はい。", "client", true); }, 3500);
+            setTimeout(() => { addMessage("ご連絡は毎日取られているのですね。それですとふとしたタイミングでの通知などには注意が必要かもしれません。一度、今後のお相手様との関係でバレるキッカケになってしまう可能性がある部分や、意識しておいた方が良い危険な部分についても鑑定してみるのはいかがでしょうか？", "teller"); }, 5300);
+            setTimeout(() => { addMessage("お願いします。", "client"); }, 7000);
             setTimeout(() => {
                 addSystemMessage("―― 鑑定中 ――");
-                addMessage("霊視でお二人の現状を拝見すると、『日常に溶け込みすぎた油断』と『不自然な心の揺らぎ』という身代わりの影（危険なサイン）が視えます。具体的には、連絡が習慣化していることでスマホへの警戒が薄れたり、逆に旦那様の前で『隠そう』とする強い偽りの念が、空間の違和感として相手に伝わってしまう恐れがあります。\n\n未来を守るための具体的な行動として、『スマホの通知は内容・名前を非表示にする』『旦那様の前ではあえて普段通りにスマホを置く（隠す念を消す）』ということを徹底してみることをオススメします。", "teller", false, true);
-                
-                setTimeout(() => {
-                    showGuidePopup(() => showBranchBOptions());
-                }, 1500);
+                addMessage("霊視でお二人の現状を拝見すると、『日常に溶け込みすぎた油断』と『不自然な心の揺らぎ』という身代わりの影（危険なサイン）が視えます。未来を守るための具体的な行動として、『スマホの通知は内容・名前を非表示にする』『旦那様の前ではあえて普段通りにスマホを置く』ということを徹底してみることをオススメします。", "teller", false, true);
+                setTimeout(() => { showGuidePopup(() => showBranchBOptions()); }, 1500);
             }, 9000);
         }
 
         function showBranchBOptions() {
-            optionsBox.innerHTML = '';
+            optionsBox.innerHTML = ''; optionsContainer.classList.remove('has-selection');
             
-            const optA = createOptionButton("選択肢A：", "こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。旦那さんは現状、怪しんでいるような雰囲気はありませんか？", () => {
-                optionsBox.innerHTML = '';
-                addMessage("こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。旦那さんは現状、怪しんでいるような雰囲気はありませんか？", "teller");
-                setTimeout(() => showFinalResult(90, "【満足度90%：大成功！旦那の心理深掘りルート】\n「旦那さんは怪しんでいませんか？」という、お客様が今一番ハッとする、かつ「はい/いいえ」の無料定型文でも返しやすい超実戦的質問です！ここから旦那様の霊視メニュー等へスムーズに誘導できる、素晴らしいラリー構築です。"), 2200);
-            });
-
-            const optB = createOptionButton("選択肢B：", "こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。またご不安な時はいつでもご相談下さいね。", () => {
-                optionsBox.innerHTML = '';
-                addMessage("こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。またご不安な時はいつでもご相談下さいね。", "teller");
-                setTimeout(() => showFinalResult(50, "【満足度50%：安心させて終了ルート】\nアドバイスとしては親切ですが、「いつでもご相談ください」とクローズしてしまったため、お客様は「わかりました！」と心の中で納得してチャットを閉じてしまいました。売上・リピート構築としては一歩手前で終了です。"), 2200);
-            });
-
-            const optC = createOptionButton("選択肢C：", "こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。他にも今お相手様から求められていることなどを鑑定することも可能ですよ。もしご希望でしたら鑑定させていただきますが、いかがでしょうか？", () => {
-                optionsBox.innerHTML = '';
-                addMessage("こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。他にも今お相手様から求められていることなどを鑑定することも可能ですよ。もしご希望でしたら鑑定させていただきますが、いかがでしょうか？", "teller");
-                setTimeout(() => showFinalResult(20, "【満足度20%：メニュー唐突提案ルート】\nアドバイスの後に別メニュー（相手が求めていること）を提案していますが、今回の流れ（バレるかどうかの不安対策）から急に話がジャンプした印象をお客様に与えてしまい、スルーされる可能性が高い提案になってしまいました。"), 2200);
-            });
-
-            optionsBox.appendChild(optA);
-            optionsBox.appendChild(optB);
-            optionsBox.appendChild(optC);
+            const optA = createOptionButton("選択肢A：", "こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。旦那さんは現状,怪しんでいるような雰囲気はありませんか？", () => { setTimeout(() => showFinalResult(90, "【満足度90%：大成功！旦那の心理深掘りルート】\n無料定型文でも返し途やすい超実戦的質問です！"), 2200); });
+            const optB = createOptionButton("選択肢B：", "こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。またご不安な時はいつでもご相談下さいね。", () => { setTimeout(() => showFinalResult(50, "【満足度50%：安心させて終了ルート】\n「いつでもご相談ください」とクローズしたため離脱されました。"), 2200); });
+            const optC = createOptionButton("選択肢C：", "こちらが現状拝見出来た鑑定結果となります。おそらく無意識に隠そうとすることでそこそこ怪しまれてしまう可能性が高いので、内容を参考に今後の行動の参考としてみていただけたらと思います。他にも今お相手様から求められていることなどを鑑定することも可能ですよ。", () => { setTimeout(() => showFinalResult(20, "【満足度20%：メニュー唐突提案ルート】\n急に話がジャンプした印象を与えてしまいました。"), 2200); });
+            
+            optionsBox.appendChild(optA); optionsBox.appendChild(optB); optionsBox.appendChild(optC);
         }
 
         function showFinalResult(percentage, comment) {
@@ -368,8 +377,6 @@
             document.getElementById('result-score').innerText = `お客様満足度：${percentage}%`;
             document.getElementById('result-comment').innerText = comment;
         }
-
-        initGame();
     </script>
 </body>
 </html>
